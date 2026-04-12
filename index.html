@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#232F3E">
+<title>AIF-C01 Practice</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#FF9900;--orange-d:#D68910;--dark:#232F3E;--dark2:#16202C;
+  --bg:#F0F2F5;--white:#FFFFFF;--border:#E0E4EA;
+  --text:#1A202C;--muted:#718096;
+  --green:#16A34A;--green-l:#F0FDF4;--green-b:#BBF7D0;
+  --red:#DC2626;--red-l:#FEF2F2;--red-b:#FECACA;
+  --blue:#2563EB;--blue-l:#EFF6FF;
+  --yellow:#F59E0B;--yellow-l:#FFFBEB;
+  --nav:64px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;overflow:hidden}
+#app{max-width:500px;margin:0 auto;height:100vh;height:-webkit-fill-available;background:var(--bg);position:relative;display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:500px){body{background:#D0D3D9}#app{box-shadow:0 0 40px rgba(0,0,0,.15)}}
+
+/* ── BOTTOM NAV ── */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:500px;
+  height:calc(var(--nav) + var(--safe-b));padding-bottom:var(--safe-b);
+  background:var(--white);border-top:1px solid var(--border);
+  display:flex;align-items:stretch;z-index:200;backdrop-filter:blur(10px)}
+.bnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:500;
+  cursor:pointer;transition:color .15s;padding-bottom:2px}
+.bnav-tab.on{color:var(--orange)}
+.bnav-tab svg{width:22px;height:22px}
+
+/* ── PAGES ── */
+.page{display:none;flex-direction:column;
+  min-height:calc(100vh - var(--nav) - var(--safe-b));
+  padding-bottom:calc(var(--nav) + var(--safe-b) + 8px)}
+.page.on{display:flex}
+
+/* ── HEADERS ── */
+.hdr{background:var(--dark);color:#fff;
+  padding:calc(14px + var(--safe-t)) 18px 14px;
+  flex-shrink:0;z-index:100}
+.hdr h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.hdr .sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px}
+
+.qhdr{background:var(--dark);color:#fff;
+  padding:calc(12px + var(--safe-t)) 14px 0;
+  flex-shrink:0;z-index:100}
+.qhdr-row{display:flex;align-items:center;gap:10px;padding-bottom:12px}
+.back-btn{width:36px;height:36px;border:none;background:rgba(255,255,255,.12);
+  color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;font-size:18px}
+.qhdr-info{flex:1}
+.qhdr-num{font-size:14px;font-weight:600}
+.qhdr-pos{font-size:11px;color:rgba(255,255,255,.55);margin-top:1px}
+.bkmk-btn{width:36px;height:36px;border:none;background:transparent;
+  color:rgba(255,255,255,.4);border-radius:50%;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;font-size:20px;flex-shrink:0;transition:color .2s}
+.bkmk-btn.on{color:var(--yellow)}
+.qpbar{height:3px;background:rgba(255,255,255,.15)}
+.qpbar-fill{height:100%;background:var(--orange);transition:width .3s ease}
+
+/* ── FILTER PILLS ── */
+.pills{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;
+  -ms-overflow-style:none;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0}
+.pills::-webkit-scrollbar{display:none}
+.pill{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);
+  background:transparent;color:var(--muted);font-size:13px;font-weight:500;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.pill.on{background:var(--dark);border-color:var(--dark);color:#fff}
+.pill-count{font-size:10px;margin-left:3px;opacity:.7}
+
+/* ── START QUIZ BUTTON ── */
+.start-btn{margin:12px 14px 4px;padding:14px;background:var(--orange);color:#fff;
+  border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;
+  text-align:center;box-shadow:0 4px 14px rgba(255,153,0,.35);transition:background .15s;flex-shrink:0}
+.start-btn:active{background:var(--orange-d)}
+
+/* ── QUESTION LIST ── */
+.qlist{padding:10px 14px;padding-bottom:calc(10px + var(--nav) + var(--safe-b));display:flex;flex-direction:column;gap:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.qitem{background:var(--white);border-radius:12px;padding:13px 14px;
+  display:flex;align-items:flex-start;gap:11px;cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,.07);border:1.5px solid transparent;
+  transition:transform .1s,box-shadow .1s}
+.qitem:active{transform:scale(.985);box-shadow:none}
+.qitem.correct{border-color:var(--green)}
+.qitem.wrong{border-color:var(--red)}
+.qitem.bookmarked-item{border-color:var(--yellow)}
+.qstat{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+.qstat.u{background:var(--bg);color:var(--muted);border:1.5px solid var(--border)}
+.qstat.c{background:var(--green-l);color:var(--green)}
+.qstat.w{background:var(--red-l);color:var(--red)}
+.qbody{flex:1;min-width:0}
+.qnum{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.qpreview{font-size:14px;color:var(--text);line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.qright{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.bicon{font-size:18px;color:var(--border);transition:color .2s}
+.bicon.on{color:var(--yellow)}
+.qbadge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.3px}
+.qbadge.c{background:var(--green-l);color:var(--green)}
+.qbadge.w{background:var(--red-l);color:var(--red)}
+
+/* ── EMPTY STATE ── */
+.empty{padding:44px 20px;text-align:center}
+.empty-icon{font-size:52px;margin-bottom:12px}
+.empty h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.empty p{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* ── QUESTION VIEW ── */
+.qview-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.qview-body{padding:18px 14px 16px}
+
+.qtext-card{background:var(--white);border-radius:12px;padding:16px;
+  font-size:15px;line-height:1.65;color:var(--text);margin-bottom:18px;
+  box-shadow:0 1px 3px rgba(0,0,0,.07);white-space:pre-wrap}
+
+.result-banner{display:flex;align-items:center;gap:8px;padding:11px 14px;
+  border-radius:10px;margin-bottom:16px;font-size:14px;font-weight:600}
+.result-banner.c{background:var(--green-l);color:var(--green);border:1.5px solid var(--green-b)}
+.result-banner.w{background:var(--red-l);color:var(--red);border:1.5px solid var(--red-b)}
+.result-banner svg{width:18px;height:18px;flex-shrink:0}
+
+/* ── OPTIONS ── */
+.opts{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.opt{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;
+  background:var(--white);border:2px solid var(--border);border-radius:12px;
+  cursor:pointer;text-align:left;color:var(--text);font-size:14px;line-height:1.5;
+  transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.06);width:100%}
+.opt:not([disabled]):active{transform:scale(.98)}
+.opt[disabled]{cursor:default}
+.olabel{width:28px;height:28px;border-radius:50%;background:var(--bg);border:2px solid var(--border);
+  color:var(--muted);font-size:12px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;transition:all .15s}
+.otext{flex:1;padding-top:3px}
+
+/* Option states */
+.opt.sel-c{border-color:var(--green);background:var(--green-l)}
+.opt.sel-c .olabel{background:var(--green);border-color:var(--green);color:#fff}
+.opt.sel-w{border-color:var(--red);background:var(--red-l)}
+.opt.sel-w .olabel{background:var(--red);border-color:var(--red);color:#fff}
+.opt.show-c{border-color:var(--green);background:var(--green-l)}
+.opt.show-c .olabel{background:var(--green);border-color:var(--green);color:#fff}
+.opt.dim{opacity:.38}
+/* Multi-select pending (chosen but not yet submitted) */
+.opt.sel-pending{border-color:var(--blue);background:var(--blue-l)}
+.opt.sel-pending .olabel{background:var(--blue);border-color:var(--blue);color:#fff}
+/* Multi-answer hint banner */
+.multi-hint{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;
+  background:var(--blue-l);color:var(--blue);border-radius:8px;
+  font-size:12px;font-weight:600;margin-bottom:14px;border:1px solid #BFDBFE}
+.multi-hint svg{flex-shrink:0}
+/* Submit answer button (multi-answer) */
+.submit-ans-wrap{margin-bottom:18px}
+.submit-ans-btn{width:100%;padding:14px;background:var(--dark);border:none;
+  color:#fff;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;
+  transition:all .15s;box-shadow:0 4px 14px rgba(35,47,62,.2)}
+.submit-ans-btn:not(.disabled-btn):active{opacity:.8}
+.submit-ans-btn.disabled-btn{background:var(--border);color:var(--muted);
+  box-shadow:none;cursor:default}
+
+/* ── EXPLANATION ── */
+.expl-wrap{margin-bottom:18px}
+.expl-btn{width:100%;padding:12px 16px;background:var(--blue-l);border:1.5px solid var(--blue);
+  border-radius:10px;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.expl-btn:active{background:#DBEAFE}
+.expl-body{background:var(--white);border:1.5px solid var(--border);border-top:none;
+  border-radius:0 0 10px 10px;padding:15px;font-size:13.5px;line-height:1.72;
+  color:var(--text);display:none;white-space:pre-wrap}
+.expl-body.on{display:block}
+
+/* Correct answer label */
+.ca-tag{display:inline-flex;align-items:center;gap:4px;margin-left:8px;
+  font-size:10px;font-weight:700;color:var(--green);background:var(--green-l);
+  padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.3px;vertical-align:middle}
+
+/* ── NAV BUTTONS ── */
+.qnav{display:flex;gap:10px;padding:12px 14px calc(12px + var(--nav) + var(--safe-b));
+  background:var(--white);border-top:1px solid var(--border);
+  flex-shrink:0;z-index:50}
+.qnav-btn{flex:1;padding:13px;border-radius:10px;border:2px solid var(--border);
+  background:var(--white);color:var(--text);font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .15s}
+.qnav-btn:active{opacity:.7}
+.qnav-btn:disabled{opacity:.3;cursor:default}
+.qnav-btn.pri{background:var(--dark);border-color:var(--dark);color:#fff}
+
+/* ── DASHBOARD ── */
+.dash-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.dash-body{padding:14px;padding-bottom:calc(14px + var(--nav) + var(--safe-b))}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.scard{background:var(--white);border-radius:12px;padding:15px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.scard.hl{background:var(--dark)}
+.sval{font-size:28px;font-weight:700;line-height:1}
+.scard.hl .sval{color:var(--orange)}
+.slabel{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+.scard.hl .slabel{color:rgba(255,255,255,.5)}
+
+.section{background:var(--white);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.section-ttl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+
+/* Donut chart */
+.donut-wrap{display:flex;align-items:center;gap:20px}
+.donut-legend{display:flex;flex-direction:column;gap:10px;flex:1}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:13px}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.leg-name{color:var(--muted)}
+.leg-val{font-weight:600;margin-left:auto}
+
+/* Progress bars */
+.bar-item{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bar-lbl{font-size:12px;color:var(--muted);width:80px;flex-shrink:0}
+.bar-track{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .7s ease}
+.bar-pct{font-size:12px;font-weight:600;width:34px;text-align:right;flex-shrink:0}
+
+/* Wrong review items */
+.review-item{background:var(--white);border-radius:10px;padding:12px 13px;
+  margin-bottom:8px;border-left:3px solid var(--red);cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.review-item:active{opacity:.7}
+.rnum{font-size:11px;font-weight:600;color:var(--red);margin-bottom:3px}
+.rtext{font-size:13px;color:var(--text);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-ttl{font-size:15px;font-weight:700}
+.sec-more{font-size:13px;color:var(--blue);cursor:pointer}
+
+/* Reset button */
+.reset-btn{width:100%;padding:14px;border:2px solid var(--red);background:transparent;
+  color:var(--red);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.reset-btn:active{background:var(--red-l)}
+
+/* Animations */
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.anim{animation:slideUp .22s ease}
+
+/* Streak badge */
+.streak-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
+  background:var(--yellow-l);color:var(--yellow);border-radius:20px;
+  font-size:12px;font-weight:600;border:1.5px solid #FDE68A}
+
+/* ── SPLASH / CSV LOADER ── */
+.splash{display:flex;align-items:center;justify-content:center;flex-direction:column;
+  height:100vh;height:-webkit-fill-available;background:var(--dark);padding:20px}
+.splash-card{background:var(--white);border-radius:20px;padding:36px 24px;
+  width:100%;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.splash-icon{font-size:46px;line-height:1;margin-bottom:10px}
+.splash-title{font-size:30px;font-weight:800;color:var(--dark);letter-spacing:-1px;margin-bottom:4px}
+.splash-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:20px}
+.splash-div{height:1px;background:var(--border);margin-bottom:20px}
+.splash-hint{font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.6}
+.csv-label{display:block;padding:14px;background:var(--orange);color:#fff;
+  border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;
+  box-shadow:0 4px 14px rgba(255,153,0,.35);margin-bottom:16px;transition:background .15s}
+.csv-label:active{background:var(--orange-d)}
+.csv-label input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+.splash-cmd{font-size:11px;color:var(--muted);line-height:1.8}
+.splash-cmd code{display:inline-block;background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:4px 8px;font-family:monospace;font-size:11px;color:var(--dark);
+  margin-top:4px;word-break:break-all}
+.splash-skip{margin-top:14px;font-size:12px;color:var(--muted)}
+.splash-skip a{color:var(--blue);cursor:pointer;text-decoration:none}
+/* Load CSV row in dashboard */
+.load-csv-row{display:flex;align-items:center;gap:10px;padding:13px 14px;
+  background:var(--white);border-radius:12px;cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:10px;
+  border:1.5px dashed var(--border);transition:border-color .15s}
+.load-csv-row:active{border-color:var(--orange)}
+.load-csv-row input{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+.load-csv-icon{font-size:22px;flex-shrink:0}
+.load-csv-info{flex:1}
+.load-csv-title{font-size:13px;font-weight:600;color:var(--text)}
+.load-csv-sub{font-size:11px;color:var(--muted);margin-top:1px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+'use strict';
+
+/* ════════════════════════════════════════════
+   QUESTIONS DATA  (26 built-in demo questions)
+   Overwritten at runtime when questions.csv is loaded
+════════════════════════════════════════════ */
+let Q = [
+{
+  id:1,
+  q:"A company makes forecasts each quarter to decide how to optimize operations to meet expected demand. The company uses ML models to make these forecasts.\n\nAn AI practitioner is writing a report about the trained ML models to provide transparency and explainability to company stakeholders.\n\nWhat should the AI practitioner include in the report to meet the transparency and explainability requirements?",
+  opts:["Code for model training","Partial dependence plots (PDPs)","Sample data for training","Model convergence tables"],
+  ans:1,
+  expl:"Correct Answer: B — Partial dependence plots (PDPs)\n\nPDPs show the relationship between one or more features and the model's predicted output, allowing stakeholders to see exactly how each variable influences predictions. This directly meets transparency and explainability requirements.\n\n• A. Code for model training — Technical code does not help non-technical stakeholders understand model behavior.\n• C. Sample data for training — Shows what data was used, but not how the model uses it.\n• D. Model convergence tables — These are optimization metrics for engineers, not explainability tools."
+},
+{
+  id:2,
+  q:"A law firm wants to build an AI application by using large language models (LLMs). The application will read legal documents and extract key points from the documents.\n\nWhich solution meets these requirements?",
+  opts:["Build an automatic named entity recognition system.","Create a recommendation engine.","Develop a summarization chatbot.","Develop a multi-language translation system."],
+  ans:2,
+  expl:"Correct Answer: C — Develop a summarization chatbot\n\nA summarization chatbot powered by an LLM can read long legal documents and generate concise summaries that highlight key points. This is exactly what the law firm needs.\n\n• A. Named entity recognition (NER) — Identifies named entities (people, places, dates) but does not extract key conceptual points.\n• B. Recommendation engine — Suggests items based on preferences; not relevant to document summarization.\n• D. Translation system — Converts language; does not extract or summarize legal content."
+},
+{
+  id:3,
+  q:"A company wants to classify human genes into 20 categories based on gene characteristics. The company needs an ML algorithm to document how the inner mechanism of the model affects the output.\n\nWhich ML algorithm meets these requirements?",
+  opts:["Decision trees","Linear regression","Logistic regression","Neural networks"],
+  ans:0,
+  expl:"Correct Answer: A — Decision trees\n\nDecision trees are inherently interpretable. Each node, branch, and split rule can be documented and explained, making it easy to show how the model's inner mechanism (specific feature thresholds) leads to each of the 20 classification outcomes.\n\n• B. Linear regression — Predicts continuous values, not suitable for 20-category classification.\n• C. Logistic regression — Works best for binary classification; extending to 20 classes is complex and less interpretable.\n• D. Neural networks — Highly accurate but considered a 'black box'; the inner mechanism is very difficult to document or explain."
+},
+{
+  id:4,
+  q:"A company has built an image classification model to predict plant diseases from photos of plant leaves. The company wants to evaluate how many images the model classified correctly.\n\nWhich evaluation metric should the company use to measure the model's performance?",
+  opts:["R-squared score","Accuracy","Root mean squared error (RMSE)","Learning rate"],
+  ans:1,
+  expl:"Correct Answer: B — Accuracy\n\nAccuracy measures the proportion of correctly classified images out of the total number of images. It directly answers the question of how many images the model got right.\n\n• A. R-squared score — Used for regression tasks (continuous output), not classification.\n• C. RMSE (Root Mean Squared Error) — Also used for regression, not classification.\n• D. Learning rate — A hyperparameter used during model training, not an evaluation metric for already-trained models."
+},
+{
+  id:5,
+  q:"A company is using a pre-trained large language model (LLM) to build a chatbot for product recommendations. The company needs the LLM outputs to be short and written in a specific language.\n\nWhich solution will align the LLM response quality with the company's expectations?",
+  opts:["Adjust the prompt.","Choose an LLM of a different size.","Increase the temperature.","Increase the Top K value."],
+  ans:0,
+  expl:"Correct Answer: A — Adjust the prompt\n\nPrompt engineering allows you to directly instruct the LLM on the desired output format, length, and language (e.g., 'Respond in Spanish in 2 sentences or fewer'). This is the most direct and cost-effective way to control output behavior.\n\n• B. Different LLM size — Model size affects capability and cost, but doesn't specifically control output length or language.\n• C. Increase temperature — Makes outputs more random/creative, which would make them less predictable and potentially longer.\n• D. Increase Top K — Affects the vocabulary sampling pool; does not control length or language."
+},
+{
+  id:6,
+  q:"A company uses Amazon SageMaker for its ML pipeline in a production environment. The company has large input data sizes up to 1 GB and processing times up to 1 hour. The company needs near real-time latency.\n\nWhich SageMaker inference option meets these requirements?",
+  opts:["Real-time inference","Serverless inference","Asynchronous inference","Batch transform"],
+  ans:2,
+  expl:"Correct Answer: C — Asynchronous inference\n\nSageMaker Asynchronous Inference is designed for large payloads (up to 1 GB) and long processing times (up to 1 hour). It queues requests and processes them asynchronously, making it ideal when near real-time (but not instant) responses are acceptable.\n\n• A. Real-time inference — Best for small payloads and low-latency (< 60 seconds) needs; not suited for 1 GB inputs or 1-hour processing.\n• B. Serverless inference — Suited for intermittent traffic with small payloads; not for large data or long processing.\n• D. Batch transform — Processes large datasets offline as a batch job; latency is measured in hours, not near real-time."
+},
+{
+  id:7,
+  q:"A company is using domain-specific models. The company wants to avoid creating new models from the beginning. The company instead wants to adapt pre-trained models to create models for new, related tasks.\n\nWhich ML strategy meets these requirements?",
+  opts:["Increase the number of epochs.","Use transfer learning.","Decrease the number of epochs.","Use unsupervised learning."],
+  ans:1,
+  expl:"Correct Answer: B — Transfer learning\n\nTransfer learning takes a pre-trained model (trained on a large general dataset) and adapts it to a new, related task with minimal additional training. This saves significant time and compute resources compared to training from scratch.\n\n• A. Increase number of epochs — This simply trains the existing model longer; it doesn't adapt a pre-trained model to new tasks.\n• C. Decrease number of epochs — Reduces training time but doesn't address reusing pre-trained models.\n• D. Unsupervised learning — A training paradigm for unlabeled data; not specifically about reusing pre-trained models."
+},
+{
+  id:8,
+  q:"A company is building a solution to generate images for protective eyewear. The solution must have high accuracy and must minimize the risk of incorrect annotations.\n\nWhich solution will meet these requirements?",
+  opts:["Human-in-the-loop validation by using Amazon SageMaker Ground Truth Plus","Data augmentation by using an Amazon Bedrock knowledge base","Image recognition by using Amazon Rekognition","Data summarization by using Amazon QuickSight Q"],
+  ans:0,
+  expl:"Correct Answer: A — Human-in-the-loop validation using Amazon SageMaker Ground Truth Plus\n\nSageMaker Ground Truth Plus uses a human workforce to review, verify, and correct annotations. This human-in-the-loop approach directly minimizes incorrect annotations and ensures high accuracy for specialized domains like protective eyewear.\n\n• B. Data augmentation — Increases the variety of training data but does not fix annotation errors.\n• C. Amazon Rekognition — An image analysis service; it performs recognition but doesn't provide custom annotation validation.\n• D. Amazon QuickSight Q — A business intelligence/analytics tool; not relevant to image annotation validation."
+},
+{
+  id:9,
+  q:"A company wants to create a chatbot by using a foundation model (FM) on Amazon Bedrock. The FM needs to access encrypted data that is stored in an Amazon S3 bucket. The data is encrypted with Amazon S3 managed keys (SSE-S3).\n\nThe FM encounters a failure when attempting to access the S3 bucket data.\n\nWhich solution will meet these requirements?",
+  opts:["Ensure that the role that Amazon Bedrock assumes has permission to decrypt data with the correct encryption key.","Set the access permissions for the S3 buckets to allow public access to enable access over the internet.","Use prompt engineering techniques to tell the model to look for information in Amazon S3.","Ensure that the S3 data does not contain sensitive information."],
+  ans:0,
+  expl:"Correct Answer: A — Ensure the Amazon Bedrock role has permission to decrypt data\n\nThe failure is an IAM/permissions issue. Amazon Bedrock uses an IAM role to access AWS services. This role must have the s3:GetObject permission on the bucket AND the kms:Decrypt permission for the encryption key (even with SSE-S3, the role needs appropriate S3 access).\n\n• B. Allow public access — This is a massive security risk and violates best practices; never expose sensitive data publicly.\n• C. Prompt engineering — Telling the model to 'look' in S3 via prompts doesn't grant actual AWS API access permissions.\n• D. Remove sensitive information — This doesn't fix the permission issue and defeats the purpose of using encrypted data."
+},
+{
+  id:10,
+  q:"A company wants to use language models to create an application for inference on edge devices. The inference must have the lowest latency possible.\n\nWhich solution will meet these requirements?",
+  opts:["Deploy optimized small language models (SLMs) on edge devices.","Deploy optimized large language models (LLMs) on edge devices.","Incorporate a centralized small language model (SLM) API for asynchronous communication with edge devices.","Incorporate a centralized large language model (LLM) API for asynchronous communication with edge devices."],
+  ans:0,
+  expl:"Correct Answer: A — Deploy optimized small language models (SLMs) on edge devices\n\nRunning inference locally on the edge device eliminates network round-trip latency entirely, giving the lowest possible latency. Small language models (SLMs) are optimized for resource-constrained environments (less memory, less compute) making them ideal for edge deployment.\n\n• B. LLMs on edge devices — LLMs are too large and resource-intensive for most edge devices.\n• C. Centralized SLM API — Any network-based API introduces latency from the network hop, even if the model is small.\n• D. Centralized LLM API — Both the model size and the network communication add latency; worst option for low latency."
+},
+{
+  id:11,
+  q:"A company wants to build an ML model by using Amazon SageMaker. The company needs to share and manage variables for model development across multiple teams.\n\nWhich SageMaker feature meets these requirements?",
+  opts:["Amazon SageMaker Feature Store","Amazon SageMaker Data Wrangler","Amazon SageMaker Clarify","Amazon SageMaker Model Cards"],
+  ans:0,
+  expl:"Correct Answer: A — Amazon SageMaker Feature Store\n\nSageMaker Feature Store is a purpose-built repository for storing, sharing, and managing ML features (variables). Multiple teams can discover, access, and reuse the same features for consistent model development, preventing duplication and ensuring data consistency.\n\n• B. Data Wrangler — A data preparation and transformation tool, not a shared feature repository.\n• C. SageMaker Clarify — Provides bias detection and model explainability; not for managing shared feature variables.\n• D. Model Cards — Documentation tool for model details, performance, and intended use; not for feature storage."
+},
+{
+  id:12,
+  q:"A company wants to use generative AI to increase developer productivity and software development. The company wants to use Amazon Q Developer.\n\nWhat can Amazon Q Developer do to help the company meet these requirements?",
+  opts:["Create software snippets, reference tracking, and open source license tracking.","Run an application without provisioning or managing servers.","Enable voice commands for coding and providing natural language search.","Convert audio files to text documents by using ML models."],
+  ans:0,
+  expl:"Correct Answer: A — Create software snippets, reference tracking, and open source license tracking\n\nAmazon Q Developer is an AI-powered coding assistant that generates code snippets, provides code completions, tracks code references, and can flag open-source license usage. These capabilities directly boost developer productivity.\n\n• B. Run applications without managing servers — This describes AWS Lambda or serverless computing, not Amazon Q Developer.\n• C. Voice commands for coding — Amazon Q Developer uses text-based chat and IDE integration, not voice commands.\n• D. Convert audio to text — This describes Amazon Transcribe, not Amazon Q Developer."
+},
+{
+  id:13,
+  q:"A financial institution is using Amazon Bedrock to develop an AI application. The application is hosted in a VPC. To meet regulatory compliance standards, the VPC is not allowed access to any internet traffic.\n\nWhich AWS service or feature will meet these requirements?",
+  opts:["AWS PrivateLink","Amazon Macie","Amazon CloudFront","Internet gateway"],
+  ans:0,
+  expl:"Correct Answer: A — AWS PrivateLink\n\nAWS PrivateLink creates private endpoints that allow resources within a VPC to communicate with AWS services (like Amazon Bedrock) over the AWS private network — entirely without internet access. This satisfies strict regulatory requirements for network isolation.\n\n• B. Amazon Macie — A data security service that discovers and protects sensitive data in S3; not relevant to network connectivity.\n• C. Amazon CloudFront — A CDN that distributes content over the internet; requires internet access.\n• D. Internet gateway — Provides internet access to a VPC; explicitly prohibited in this scenario."
+},
+{
+  id:14,
+  q:"A company wants to develop an educational game where users answer questions such as: 'A jar contains six red, four green, and three yellow marbles. What is the probability of choosing a green marble from the jar?'\n\nWhich solution meets these requirements with the LEAST operational overhead?",
+  opts:["Use supervised learning to create a regression model that will predict probability.","Use reinforcement learning to train a model to return the probability.","Use code that will calculate probability by using simple rules and computations.","Use unsupervised learning to create a model that will estimate probability density."],
+  ans:2,
+  expl:"Correct Answer: C — Use code with simple rules and computations\n\nBasic probability (e.g., 4 green ÷ 13 total = 30.8%) is simple arithmetic. Writing a few lines of deterministic code handles this perfectly with zero machine learning overhead — no training data, no model deployment, no monitoring required.\n\n• A. Supervised learning regression — Extreme overkill; training a model for a task solvable with one division operation wastes time and resources.\n• B. Reinforcement learning — Designed for sequential decision-making in environments; completely inappropriate for a math formula.\n• D. Unsupervised learning — Used for pattern discovery in unlabeled data; not needed for a simple calculation."
+},
+{
+  id:15,
+  q:"Which metric measures the runtime efficiency of operating AI models?",
+  opts:["Customer satisfaction score (CSAT)","Training time for each epoch","Average response time","Number of training instances"],
+  ans:2,
+  expl:"Correct Answer: C — Average response time\n\nAverage response time measures how quickly an AI model produces a prediction or output at runtime. It directly reflects the operational (inference) efficiency — lower response time means higher runtime efficiency.\n\n• A. CSAT (Customer satisfaction score) — Measures user satisfaction, not technical runtime efficiency.\n• B. Training time per epoch — Measures training efficiency, not runtime/inference efficiency of a deployed model.\n• D. Number of training instances — Relates to training data size, not the efficiency of operating (running) the model."
+},
+{
+  id:16,
+  q:"A company is building a contact center application and wants to gain insights from customer conversations. The company wants to analyze and extract key information from the audio of the customer calls.\n\nWhich solution meets these requirements?",
+  opts:["Build a conversational chatbot by using Amazon Lex.","Transcribe call recordings by using Amazon Transcribe.","Extract information from call recordings by using Amazon SageMaker Model Monitor.","Create classification labels by using Amazon Comprehend."],
+  ans:1,
+  expl:"Correct Answer: B — Transcribe call recordings using Amazon Transcribe\n\nAmazon Transcribe converts audio recordings to text (speech-to-text). Once call audio is converted to text, the company can analyze it to extract insights, key topics, and important information. This is the essential first step for audio-based analysis.\n\n• A. Amazon Lex — Builds conversational interfaces (chatbots); doesn't process existing recorded audio.\n• C. SageMaker Model Monitor — Monitors deployed ML models for data drift and quality; not for audio processing.\n• D. Amazon Comprehend — Analyzes text for sentiment, entities, and key phrases — but requires text input, not raw audio."
+},
+{
+  id:17,
+  q:"A company has petabytes of unlabeled customer data to use for an advertisement campaign. The company wants to classify its customers into tiers to advertise and promote the company's products.\n\nWhich methodology should the company use to meet these requirements?",
+  opts:["Supervised learning","Unsupervised learning","Reinforcement learning","Reinforcement learning from human feedback (RLHF)"],
+  ans:1,
+  expl:"Correct Answer: B — Unsupervised learning\n\nThe data is unlabeled, which means there are no predefined customer tier labels. Unsupervised learning algorithms (specifically clustering, like k-means) can discover natural groupings in the data and organize customers into tiers without any labeled examples.\n\n• A. Supervised learning — Requires labeled training data (e.g., pre-defined tier assignments), which the company does not have.\n• C. Reinforcement learning — Used for sequential decision-making with reward feedback; not applicable for customer segmentation.\n• D. RLHF — A technique for fine-tuning language models using human feedback; not relevant for customer segmentation."
+},
+{
+  id:18,
+  q:"An AI practitioner wants to use a foundation model (FM) to design a search application. The search application must handle queries that have text and images.\n\nWhich type of FM should the AI practitioner use to power the search application?",
+  opts:["Multi-modal embedding model","Text embedding model","Multi-modal generation model","Image generation model"],
+  ans:0,
+  expl:"Correct Answer: A — Multi-modal embedding model\n\nA multi-modal embedding model encodes both text and images into a shared vector space. This enables the search application to match text queries against image content (and vice versa) by comparing embedding similarity — perfect for cross-modal search.\n\n• B. Text embedding model — Only encodes text; cannot process image queries or index image content meaningfully.\n• C. Multi-modal generation model — Generates new content (e.g., image from text); not designed for search/retrieval.\n• D. Image generation model — Creates images from prompts; not suitable for search functionality."
+},
+{
+  id:19,
+  q:"A company uses a foundation model (FM) from Amazon Bedrock for an AI search tool. The company wants to fine-tune the model to be more accurate by using the company's data.\n\nWhich strategy will successfully fine-tune the model?",
+  opts:["Provide labeled data with the prompt field and the completion field.","Prepare the training dataset by creating a .txt file that contains multiple lines in .csv format.","Purchase Provisioned Throughput for Amazon Bedrock.","Train the model on journals and textbooks."],
+  ans:0,
+  expl:"Correct Answer: A — Provide labeled data with the prompt field and the completion field\n\nAmazon Bedrock fine-tuning requires training data in a specific JSONL format with 'prompt' and 'completion' field pairs. This supervised fine-tuning adjusts the model weights to produce more accurate, company-specific responses.\n\n• B. .txt file in .csv format — Amazon Bedrock fine-tuning does not accept .txt files; it requires the proper JSONL format with prompt/completion pairs.\n• C. Purchase Provisioned Throughput — This reserves inference capacity for a fine-tuned model but is not part of the fine-tuning process itself.\n• D. Train on journals and textbooks — General training data without company-specific prompt/completion pairs won't improve accuracy for the company's specific use case."
+},
+{
+  id:20,
+  q:"A company wants to use AI to protect its application from threats. The AI solution needs to check if an IP address is from a suspicious source.\n\nWhich solution meets these requirements?",
+  opts:["Build a speech recognition system.","Create a natural language processing (NLP) named entity recognition system.","Develop an anomaly detection system.","Create a fraud forecasting system."],
+  ans:2,
+  expl:"Correct Answer: C — Develop an anomaly detection system\n\nAnomaly detection identifies patterns that deviate significantly from expected behavior. For IP addresses, it can flag IPs with unusual traffic patterns, geographic anomalies, or previously unseen behavior — making it ideal for detecting suspicious sources.\n\n• A. Speech recognition — Converts audio to text; completely unrelated to IP address monitoring.\n• B. NLP named entity recognition — Extracts entities like names and dates from text; not applicable to IP analysis.\n• D. Fraud forecasting system — While related to security, fraud forecasting predicts future fraud events; anomaly detection is more appropriate for real-time suspicious IP identification."
+},
+{
+  id:21,
+  q:"Which feature of Amazon OpenSearch Service gives companies the ability to build vector database applications?",
+  opts:["Integration with Amazon S3 for object storage","Support for geospatial indexing and queries","Scalable index management and nearest neighbor search capability","Ability to perform real-time analysis on streaming data"],
+  ans:2,
+  expl:"Correct Answer: C — Scalable index management and nearest neighbor search capability\n\nVector database applications rely on storing high-dimensional vectors (embeddings) and finding the most similar vectors using nearest neighbor search (k-NN). Amazon OpenSearch Service's k-NN engine and scalable vector indexing are precisely what enables vector database functionality for AI/ML applications.\n\n• A. S3 integration — Enables data storage/retrieval from S3; not specific to vector search.\n• B. Geospatial indexing — Used for location-based queries (distance between GPS coordinates); not vector similarity search.\n• D. Real-time streaming analysis — Processes streaming data in real time; not the defining feature for vector databases."
+},
+{
+  id:22,
+  q:"Which option is a use case for generative AI models?",
+  opts:["Improving network security by using intrusion detection systems","Creating photorealistic images from text descriptions for digital marketing","Enhancing database performance by using optimized indexing","Analyzing financial data to forecast stock market trends"],
+  ans:1,
+  expl:"Correct Answer: B — Creating photorealistic images from text descriptions for digital marketing\n\nGenerative AI models (like image generation models) create new, original content — images, text, audio, video — from prompts. Generating photorealistic marketing images from text descriptions is a textbook generative AI use case.\n\n• A. Intrusion detection — Uses discriminative/analytical AI to classify network traffic patterns; not generative.\n• C. Database indexing — A computer science/engineering optimization problem; not generative AI.\n• D. Stock market forecasting — Uses predictive/analytical ML models to forecast continuous values; this is classic supervised learning, not generative AI."
+},
+{
+  id:23,
+  q:"A company wants to build a generative AI application by using Amazon Bedrock and needs to choose a foundation model (FM). The company wants to know how much information can fit into one prompt.\n\nWhich consideration will inform the company's decision?",
+  opts:["Temperature","Context window","Batch size","Model size"],
+  ans:1,
+  expl:"Correct Answer: B — Context window\n\nThe context window defines the maximum number of tokens (words/characters) a foundation model can process in a single prompt + response. A larger context window means more information — longer documents, more conversation history, or more detailed instructions — can fit in one prompt.\n\n• A. Temperature — Controls the randomness/creativity of outputs; does not affect how much information fits in a prompt.\n• C. Batch size — A training/inference throughput parameter; not related to how much fits in a single prompt.\n• D. Model size — Refers to the number of parameters; while larger models tend to have larger context windows, 'model size' is not the specific term that describes prompt capacity."
+},
+{
+  id:24,
+  q:"A company wants to make a chatbot to help customers. The chatbot will help solve technical problems without human intervention.\n\nThe company chose a foundation model (FM) for the chatbot. The chatbot needs to produce responses that adhere to company tone.\n\nWhich solution meets these requirements?",
+  opts:["Set a low limit on the number of tokens the FM can produce.","Use batch inferencing to process detailed responses.","Experiment and refine the prompt until the FM produces the desired responses.","Define a higher number for the temperature parameter."],
+  ans:2,
+  expl:"Correct Answer: C — Experiment and refine the prompt until the FM produces the desired responses\n\nPrompt engineering (crafting system prompts and instructions) is the primary method for steering a foundation model toward a specific tone, style, and behavior without retraining. Iteratively refining the prompt until the chatbot matches the company's tone is the correct approach.\n\n• A. Low token limit — Restricts response length but does not control tone or style.\n• B. Batch inferencing — A processing mode for handling many requests efficiently; unrelated to tone control.\n• D. Higher temperature — Increases output randomness/creativity, which would make tone less consistent and predictable."
+},
+{
+  id:25,
+  q:"A company wants to use a large language model (LLM) on Amazon Bedrock for sentiment analysis. The company wants to classify the sentiment of text passages as positive or negative.\n\nWhich prompt engineering strategy meets these requirements?",
+  opts:["Provide examples of text passages with corresponding positive or negative labels in the prompt followed by the new text passage to be classified.","Provide a detailed explanation of sentiment analysis and how LLMs work in the prompt.","Provide the new text passage to be classified without any additional context or examples.","Provide the new text passage with a few examples of unrelated tasks, such as text summarization or question answering."],
+  ans:0,
+  expl:"Correct Answer: A — Few-shot prompting with labeled examples\n\nThis technique is called few-shot prompting. Providing labeled examples (e.g., 'Review: Great product! → Positive; Review: Terrible experience → Negative') before the new text helps the LLM understand the classification task and output format, significantly improving accuracy.\n\n• B. Explain sentiment analysis in the prompt — Explaining the theory doesn't guide the model as effectively as concrete labeled examples.\n• C. Provide text without context — Zero-shot prompting; works for simple tasks but is less accurate than few-shot for specific classification.\n• D. Unrelated task examples — Confuses the model with irrelevant context, which would likely degrade classification accuracy."
+},
+{
+  id:26,
+  q:"A security company is using Amazon Bedrock to run foundation models (FMs). The company wants to ensure that only authorized users invoke the models. The company needs to identify any unauthorized access attempts to set appropriate AWS Identity and Access Management (IAM) policies and roles for future iterations of the FMs.\n\nWhich AWS service should the company use to identify unauthorized users that are trying to access Amazon Bedrock?",
+  opts:["AWS Audit Manager","AWS CloudTrail","Amazon Fraud Detector","AWS Trusted Advisor"],
+  ans:1,
+  expl:"Correct Answer: B — AWS CloudTrail\n\nAWS CloudTrail logs every API call made to AWS services, including Amazon Bedrock. By reviewing CloudTrail logs, the security team can identify who called which Bedrock APIs, when, from where, and whether the calls were authorized or resulted in access denied errors — perfect for identifying unauthorized access attempts.\n\n• A. AWS Audit Manager — Automates compliance evidence collection; it uses CloudTrail as a source but is not the right tool for real-time access monitoring.\n• C. Amazon Fraud Detector — Detects online fraud (e.g., fake accounts, payment fraud); not designed for AWS API access monitoring.\n• D. AWS Trusted Advisor — Provides best practice recommendations for cost, security posture, and performance; does not log or analyze specific API access attempts."
+}
+];
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+const SK = 'aif_c01_v2';
+
+function loadState(){
+  try{
+    const s=localStorage.getItem(SK);
+    if(s) return JSON.parse(s);
+  }catch(e){}
+  return {answers:{},bookmarks:[],history:[]};
+}
+
+let S=loadState();
+
+function save(){
+  try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}
+}
+
+/* UI state */
+let tab='practice';      // 'practice'|'bookmarks'|'dashboard'
+let view='list';         // 'list'|'question'
+let filter='all';        // 'all'|'unanswered'|'correct'|'wrong'
+let qList=[];            // IDs in current quiz context
+let qIdx=0;              // index in qList
+let explOpen=false;
+let pendingMulti=[];     // selected option indices for multi-answer (pre-submit)
+
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function getQ(id){
+  const q=Q.find(q=>q.id===id);
+  // Normalise ans to always be an array of numbers (handles legacy number,
+  // comma-string from CSV, and already-array from parsed CSV).
+  if(q&&!Array.isArray(q.ans)){
+    q.ans=typeof q.ans==='string'?q.ans.split(',').map(Number):[Number(q.ans)];
+  }
+  return q;
+}
+function status(id){
+  if(!S.answers.hasOwnProperty(id)) return 'u';
+  const q=getQ(id);
+  const correct=[...q.ans].sort().join(',');
+  const raw=S.answers[id];
+  const given=(Array.isArray(raw)?[...raw]:[raw]).map(Number).sort().join(',');
+  return correct===given?'c':'w';
+}
+function isBkm(id){return S.bookmarks.includes(id);}
+
+function filtered(f){
+  switch(f){
+    case 'unanswered': return Q.filter(q=>!S.answers.hasOwnProperty(q.id)).map(q=>q.id);
+    case 'correct':    return Q.filter(q=>status(q.id)==='c').map(q=>q.id);
+    case 'wrong':      return Q.filter(q=>status(q.id)==='w').map(q=>q.id);
+    case 'bookmarked': return Q.filter(q=>isBkm(q.id)).map(q=>q.id);
+    default:           return Q.map(q=>q.id);
+  }
+}
+
+function countLabel(f){
+  const n=filtered(f).length;
+  return n>0?`<span class="pill-count">${n}</span>`:'';
+}
+
+/* ════════════════════════════════════════════
+   RENDER
+════════════════════════════════════════════ */
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML='';
+
+  if(view==='question'){
+    renderQuestionView(app);
+  } else if(tab==='dashboard'){
+    renderDashboard(app);
+  } else {
+    renderListView(app);
+  }
+  renderNav(app);
+  // scroll top
+  setTimeout(()=>{
+    const sc=app.querySelector('.qview-scroll,.qlist,.dash-scroll');
+    if(sc) sc.scrollTop=0;
+  },0);
+}
+
+/* ── BOTTOM NAV ── */
+function renderNav(app){
+  const tabDef=[
+    {id:'practice',label:'Practice',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>`},
+    {id:'bookmarks',label:'Bookmarks',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>`},
+    {id:'dashboard',label:'Dashboard',icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`}
+  ];
+  const nav=el('nav','bnav');
+  tabDef.forEach(t=>{
+    const btn=el('button',`bnav-tab${(tab===t.id&&view!=='question')?' on':''}`);
+    btn.innerHTML=t.icon+`<span>${t.label}</span>`;
+    btn.addEventListener('click',()=>{
+      tab=t.id;
+      view='list';
+      filter=t.id==='bookmarks'?'bookmarked':'all';
+      explOpen=false;
+      render();
+    });
+    nav.appendChild(btn);
+  });
+  app.appendChild(nav);
+}
+
+/* ── LIST VIEW ── */
+function renderListView(app){
+  const isBookTab=tab==='bookmarks';
+  const activeFilter=isBookTab?'bookmarked':filter;
+  const ids=filtered(activeFilter);
+
+  // Header
+  const hdr=el('div','hdr');
+  hdr.innerHTML=isBookTab
+    ?`<h1>★ Bookmarks</h1><div class="sub">${ids.length} question${ids.length!==1?'s':''} bookmarked</div>`
+    :`<h1>AIF-C01 Practice</h1><div class="sub">AWS Certified AI Practitioner · ${Q.length} Questions</div>`;
+  app.appendChild(hdr);
+
+  // Filter pills (only on practice tab)
+  if(!isBookTab){
+    const pills=el('div','pills');
+    [
+      {id:'all',label:'All'},
+      {id:'unanswered',label:'Unanswered'},
+      {id:'correct',label:'Correct'},
+      {id:'wrong',label:'Wrong'},
+    ].forEach(p=>{
+      const btn=el('button',`pill${filter===p.id?' on':''}`);
+      btn.innerHTML=p.label+countLabel(p.id);
+      btn.addEventListener('click',()=>{filter=p.id;render();});
+      pills.appendChild(btn);
+    });
+    app.appendChild(pills);
+  }
+
+  // Start quiz button
+  if(ids.length>0){
+    const startBtn=el('button','start-btn');
+    startBtn.textContent=`▶  Start Quiz (${ids.length})`;
+    startBtn.addEventListener('click',()=>goToQuestion(ids[0],ids));
+    app.appendChild(startBtn);
+  }
+
+  // Question list
+  const list=el('div','qlist');
+
+  if(ids.length===0){
+    const empty=el('div','empty');
+    empty.innerHTML=isBookTab
+      ?`<div class="empty-icon">🔖</div><h3>No bookmarks yet</h3><p>Tap the ☆ icon on any question to bookmark it for later review.</p>`
+      :`<div class="empty-icon">🎉</div><h3>No questions here</h3><p>Change the filter above to see more questions.</p>`;
+    list.appendChild(empty);
+  } else {
+    ids.forEach(id=>{
+      const q=getQ(id);
+      const st=status(id);
+      const bkm=isBkm(id);
+      const item=el('div',`qitem${st!=='u'?' '+st:''}${bkm?' bookmarked-item':''}`);
+
+      const statusIcon=el('div','qstat '+st);
+      statusIcon.textContent=st==='c'?'✓':st==='w'?'✗':q.id;
+
+      const body=el('div','qbody');
+      body.innerHTML=`<div class="qnum">Question ${q.id}</div><div class="qpreview">${escHtml(q.q)}</div>`;
+
+      const right=el('div','qright');
+      const bkmIcon=el('span',`bicon${bkm?' on':''}`);
+      bkmIcon.textContent=bkm?'★':'☆';
+      bkmIcon.title='Toggle bookmark';
+      bkmIcon.addEventListener('click',e=>{e.stopPropagation();toggleBkm(id);});
+      right.appendChild(bkmIcon);
+
+      if(st!=='u'){
+        const badge=el('span','qbadge '+st);
+        badge.textContent=st==='c'?'Correct':'Wrong';
+        right.appendChild(badge);
+      }
+
+      item.appendChild(statusIcon);
+      item.appendChild(body);
+      item.appendChild(right);
+      item.addEventListener('click',()=>goToQuestion(id,ids));
+      list.appendChild(item);
+    });
+  }
+  app.appendChild(list);
+}
+
+/* ── QUESTION VIEW ── */
+function renderQuestionView(app){
+  const id=qList[qIdx];
+  const q=getQ(id);
+  const st=status(id);
+  const bkm=isBkm(id);
+  const answered=S.answers.hasOwnProperty(id);
+  const userAns=S.answers[id];
+
+  // Header
+  const hdr=el('div','qhdr');
+  const row=el('div','qhdr-row');
+
+  const backBtn=el('button','back-btn');
+  backBtn.innerHTML='←';
+  backBtn.addEventListener('click',()=>{view='list';explOpen=false;pendingMulti=[];render();});
+
+  const info=el('div','qhdr-info');
+  info.innerHTML=`<div class="qhdr-num">Question ${q.id}</div><div class="qhdr-pos">${qIdx+1} / ${qList.length} in this session</div>`;
+
+  const bkmBtn=el('button',`bkmk-btn${bkm?' on':''}`);
+  bkmBtn.innerHTML=bkm?'★':'☆';
+  bkmBtn.title='Toggle bookmark';
+  bkmBtn.addEventListener('click',()=>{toggleBkm(id);});
+
+  row.appendChild(backBtn);
+  row.appendChild(info);
+  row.appendChild(bkmBtn);
+  hdr.appendChild(row);
+
+  // Progress bar
+  const pbar=el('div','qpbar');
+  const pfill=el('div','qpbar-fill');
+  pfill.style.width=((qIdx+1)/qList.length*100)+'%';
+  pbar.appendChild(pfill);
+  hdr.appendChild(pbar);
+
+  app.appendChild(hdr);
+
+  // Scrollable content
+  const scroll=el('div','qview-scroll');
+  const body=el('div','qview-body anim');
+
+  // Result banner (after answering)
+  if(answered){
+    const banner=el('div',`result-banner ${st}`);
+    if(st==='c'){
+      banner.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Correct! Well done.`;
+    } else {
+      const correctLetters=q.ans.map(i=>String.fromCharCode(65+i)).join(', ');
+      banner.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Incorrect. Correct answer${q.ans.length>1?'s':''}: <strong>&nbsp;${correctLetters}</strong>`;
+    }
+    body.appendChild(banner);
+  }
+
+  // Question text
+  const qtext=el('div','qtext-card');
+  qtext.textContent=q.q;
+  body.appendChild(qtext);
+
+  // Multi-answer detection + hint
+  const isMulti=q.ans.length>1;
+  if(isMulti&&!answered){
+    const hint=el('div','multi-hint');
+    hint.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 11 12 14 22 4"/></svg> Select ${q.ans.length} answers`;
+    body.appendChild(hint);
+  }
+
+  // Options
+  const opts=el('div','opts');
+  const userAnsArr=answered?(Array.isArray(S.answers[id])?S.answers[id].map(Number):[Number(S.answers[id])]):[];
+
+  q.opts.forEach((opt,i)=>{
+    if(!opt) return; // skip empty option slots
+    const letter=String.fromCharCode(65+i);
+    const btn=el('button','opt');
+
+    if(answered){
+      btn.disabled=true;
+      const isCorrect=q.ans.includes(i);
+      const wasSelected=userAnsArr.includes(i);
+      if(isCorrect&&wasSelected) btn.classList.add('sel-c');
+      else if(!isCorrect&&wasSelected) btn.classList.add('sel-w');
+      else if(isCorrect) btn.classList.add('show-c');
+      else btn.classList.add('dim');
+    } else if(isMulti){
+      if(pendingMulti.includes(i)) btn.classList.add('sel-pending');
+      btn.addEventListener('click',()=>{
+        pendingMulti=pendingMulti.includes(i)?pendingMulti.filter(x=>x!==i):[...pendingMulti,i];
+        render();
+      });
+    } else {
+      btn.addEventListener('click',()=>answerQ(id,[i]));
+    }
+
+    const lbl=el('span','olabel');
+    lbl.textContent=letter;
+    const txt=el('span','otext');
+    txt.textContent=opt;
+    btn.appendChild(lbl);
+    btn.appendChild(txt);
+
+    if(answered&&q.ans.includes(i)){
+      const tag=el('span','ca-tag');
+      tag.textContent='✓ Answer';
+      txt.appendChild(document.createTextNode(' '));
+      txt.appendChild(tag);
+    }
+
+    opts.appendChild(btn);
+  });
+  body.appendChild(opts);
+
+  // Submit button for multi-answer (shown before answering)
+  if(isMulti&&!answered){
+    const submitWrap=el('div','submit-ans-wrap');
+    const submitBtn=el('button',`submit-ans-btn${pendingMulti.length===0?' disabled-btn':''}`);
+    submitBtn.disabled=pendingMulti.length===0;
+    submitBtn.textContent=pendingMulti.length===0
+      ?`Submit Answer (select ${q.ans.length})`
+      :`Submit — ${pendingMulti.length} / ${q.ans.length} selected`;
+    submitBtn.addEventListener('click',()=>{if(pendingMulti.length>0)answerQ(id,[...pendingMulti]);});
+    submitWrap.appendChild(submitBtn);
+    body.appendChild(submitWrap);
+  }
+
+  // Explanation (only after answering)
+  if(answered){
+    const wrap=el('div','expl-wrap');
+    const toggle=el('button','expl-btn');
+    toggle.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r=".5" fill="currentColor"/></svg> ${explOpen?'Hide':'Show'} Explanation`;
+
+    const expl=el('div',`expl-body${explOpen?' on':''}`);
+    expl.textContent=q.expl;
+
+    toggle.addEventListener('click',()=>{
+      explOpen=!explOpen;
+      expl.classList.toggle('on');
+      toggle.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r=".5" fill="currentColor"/></svg> ${explOpen?'Hide':'Show'} Explanation`;
+      if(explOpen) expl.scrollIntoView({behavior:'smooth',block:'nearest'});
+    });
+
+    wrap.appendChild(toggle);
+    wrap.appendChild(expl);
+    body.appendChild(wrap);
+  }
+
+  scroll.appendChild(body);
+  app.appendChild(scroll);
+
+  // Nav buttons
+  const qnav=el('div','qnav');
+  const prevBtn=el('button','qnav-btn');
+  prevBtn.textContent='← Prev';
+  prevBtn.disabled=qIdx===0;
+  prevBtn.addEventListener('click',()=>{qIdx--;explOpen=false;pendingMulti=[];render();});
+
+  const nextBtn=el('button','qnav-btn pri');
+  nextBtn.textContent=qIdx===qList.length-1?'Done ✓':'Next →';
+  nextBtn.addEventListener('click',()=>{
+    if(qIdx<qList.length-1){qIdx++;explOpen=false;pendingMulti=[];render();}
+    else{view='list';explOpen=false;pendingMulti=[];render();}
+  });
+
+  qnav.appendChild(prevBtn);
+  qnav.appendChild(nextBtn);
+  app.appendChild(qnav);
+}
+
+/* ── DASHBOARD ── */
+function renderDashboard(app){
+  const hdr=el('div','hdr');
+  hdr.innerHTML=`<h1>📊 Dashboard</h1><div class="sub">Your AIF-C01 performance overview</div>`;
+  app.appendChild(hdr);
+
+  const scroll=el('div','dash-scroll');
+  const body=el('div','dash-body');
+
+  const total=Q.length;
+  const correctIds=filtered('correct');
+  const wrongIds=filtered('wrong');
+  const unansweredIds=filtered('unanswered');
+  const answered=total-unansweredIds.length;
+  const accuracy=answered>0?Math.round(correctIds.length/answered*100):0;
+  const bkmCount=S.bookmarks.length;
+
+  // Streak calculation
+  let streak=0;
+  const hist=[...S.history].reverse();
+  for(const h of hist){if(h.correct) streak++;else break;}
+
+  // Stats grid
+  const grid=el('div','stats-grid');
+  const cards=[
+    {val:`${correctIds.length}`,lbl:'Correct Answers',cls:''},
+    {val:`${accuracy}%`,lbl:'Accuracy',cls:'hl'},
+    {val:`${answered}/${total}`,lbl:'Questions Answered',cls:''},
+    {val:`${bkmCount}`,lbl:'Bookmarked',cls:''},
+  ];
+  cards.forEach(c=>{
+    const card=el('div','scard'+(c.cls?' '+c.cls:''));
+    card.innerHTML=`<div class="sval">${c.val}</div><div class="slabel">${c.lbl}</div>`;
+    grid.appendChild(card);
+  });
+  body.appendChild(grid);
+
+  // Streak
+  if(streak>0){
+    const streakWrap=el('div','');
+    streakWrap.style.cssText='margin-bottom:14px;display:flex;gap:8px;align-items:center';
+    const sb=el('span','streak-badge');
+    sb.innerHTML=`🔥 ${streak} answer streak`;
+    streakWrap.appendChild(sb);
+    body.appendChild(streakWrap);
+  }
+
+  // Donut chart
+  const chartSec=el('div','section');
+  chartSec.innerHTML='<div class="section-ttl">Question Breakdown</div>';
+  const C2=2*Math.PI*38;
+  const correctLen=(correctIds.length/total)*C2;
+  const wrongLen=(wrongIds.length/total)*C2;
+  const unanswLen=(unansweredIds.length/total)*C2;
+
+  const donutWrap=el('div','donut-wrap');
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width','110');svg.setAttribute('height','110');
+  svg.setAttribute('viewBox','0 0 110 110');
+
+  function makeCircle(color,dashArr,dashOffset){
+    const c=document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx','55');c.setAttribute('cy','55');c.setAttribute('r','38');
+    c.setAttribute('fill','none');c.setAttribute('stroke',color);c.setAttribute('stroke-width','14');
+    c.setAttribute('stroke-dasharray',`${dashArr} ${C2}`);
+    c.setAttribute('stroke-dashoffset',String(dashOffset));
+    c.setAttribute('transform','rotate(-90 55 55)');
+    return c;
+  }
+  // background ring
+  const bg=document.createElementNS(svgNS,'circle');
+  bg.setAttribute('cx','55');bg.setAttribute('cy','55');bg.setAttribute('r','38');
+  bg.setAttribute('fill','none');bg.setAttribute('stroke','#E0E4EA');bg.setAttribute('stroke-width','14');
+  svg.appendChild(bg);
+  if(unanswLen>0) svg.appendChild(makeCircle('#CBD5E1',unanswLen,C2-correctLen-wrongLen));
+  if(wrongLen>0)  svg.appendChild(makeCircle('#DC2626',wrongLen,C2-correctLen));
+  if(correctLen>0) svg.appendChild(makeCircle('#16A34A',correctLen,C2));
+
+  // center text
+  const txt=document.createElementNS(svgNS,'text');
+  txt.setAttribute('x','55');txt.setAttribute('y','51');
+  txt.setAttribute('text-anchor','middle');txt.setAttribute('fill','#1A202C');
+  txt.setAttribute('font-size','17');txt.setAttribute('font-weight','700');
+  txt.textContent=accuracy+'%';
+  const sub=document.createElementNS(svgNS,'text');
+  sub.setAttribute('x','55');sub.setAttribute('y','64');
+  sub.setAttribute('text-anchor','middle');sub.setAttribute('fill','#718096');
+  sub.setAttribute('font-size','9');
+  sub.textContent='Accuracy';
+  svg.appendChild(txt);svg.appendChild(sub);
+
+  donutWrap.appendChild(svg);
+
+  const legend=el('div','donut-legend');
+  [
+    {color:'#16A34A',name:'Correct',count:correctIds.length},
+    {color:'#DC2626',name:'Wrong',count:wrongIds.length},
+    {color:'#CBD5E1',name:'Unanswered',count:unansweredIds.length},
+  ].forEach(l=>{
+    const item=el('div','leg-item');
+    item.innerHTML=`<span class="leg-dot" style="background:${l.color}"></span><span class="leg-name">${l.name}</span><span class="leg-val">${l.count}</span>`;
+    legend.appendChild(item);
+  });
+  donutWrap.appendChild(legend);
+  chartSec.appendChild(donutWrap);
+  body.appendChild(chartSec);
+
+  // Progress bars section
+  const barSec=el('div','section');
+  barSec.innerHTML='<div class="section-ttl">Completion Progress</div>';
+  [
+    {lbl:'Answered',val:answered,max:total,color:'#FF9900'},
+    {lbl:'Correct',val:correctIds.length,max:total,color:'#16A34A'},
+    {lbl:'Wrong',val:wrongIds.length,max:total,color:'#DC2626'},
+    {lbl:'Bookmarked',val:bkmCount,max:total,color:'#F59E0B'},
+  ].forEach(b=>{
+    const pct=total>0?Math.round(b.val/b.max*100):0;
+    const item=el('div','bar-item');
+    item.innerHTML=`<span class="bar-lbl">${b.lbl}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${b.color}"></div></div><span class="bar-pct">${pct}%</span>`;
+    barSec.appendChild(item);
+  });
+  body.appendChild(barSec);
+
+  // Wrong answers for review
+  if(wrongIds.length>0){
+    const sec=el('div','');
+    const sh=el('div','sec-hdr');
+    sh.innerHTML=`<span class="sec-ttl">❌ Review Wrong Answers</span>`;
+    sec.appendChild(sh);
+    const showing=wrongIds.slice(0,5);
+    showing.forEach(id=>{
+      const q=getQ(id);
+      const item=el('div','review-item');
+      item.innerHTML=`<div class="rnum">Question ${q.id}</div><div class="rtext">${escHtml(q.q)}</div>`;
+      item.addEventListener('click',()=>{
+        qList=wrongIds;qIdx=wrongIds.indexOf(id);view='question';explOpen=false;render();
+      });
+      sec.appendChild(item);
+    });
+    if(wrongIds.length>5){
+      const more=el('div','');
+      more.style.cssText='text-align:center;padding:8px;font-size:13px;color:var(--blue);cursor:pointer';
+      more.textContent=`Show all ${wrongIds.length} wrong answers →`;
+      more.addEventListener('click',()=>{filter='wrong';tab='practice';view='list';render();});
+      sec.appendChild(more);
+    }
+    body.appendChild(sec);
+  }
+
+  // Load CSV button
+  const csvWrap=el('label','load-csv-row');
+  const csvInp=el('input');
+  csvInp.type='file';csvInp.accept='.csv';
+  csvInp.addEventListener('change',function(e){
+    const file=e.target.files[0];if(!file)return;
+    const fr=new FileReader();
+    fr.onload=function(ev){
+      const parsed=parseCSV(ev.target.result);
+      if(!parsed.length){alert('No questions found. Make sure it was generated by extract_questions.py');return;}
+      Q=parsed;S={answers:{},bookmarks:[],history:[]};save();
+      tab='practice';view='list';filter='all';
+      render();
+    };
+    fr.readAsText(file);
+  });
+  csvWrap.innerHTML='<span class="load-csv-icon">📂</span><div class="load-csv-info"><div class="load-csv-title">Load questions.csv</div><div class="load-csv-sub">Replace questions and reset progress</div></div><span style="color:var(--muted);font-size:18px">›</span>';
+  csvWrap.appendChild(csvInp);
+  body.appendChild(csvWrap);
+
+  // Reset button
+  const resetWrap=el('div','');
+  resetWrap.style.cssText='margin-top:2px;margin-bottom:8px';
+  const resetBtn=el('button','reset-btn');
+  resetBtn.textContent='↺  Reset All Progress';
+  resetBtn.addEventListener('click',resetProgress);
+  resetWrap.appendChild(resetBtn);
+  body.appendChild(resetWrap);
+
+  scroll.appendChild(body);
+  app.appendChild(scroll);
+}
+
+/* ════════════════════════════════════════════
+   ACTIONS
+════════════════════════════════════════════ */
+function goToQuestion(id,list){
+  qList=list||Q.map(q=>q.id);
+  qIdx=qList.indexOf(id);
+  if(qIdx<0){qList=Q.map(q=>q.id);qIdx=qList.indexOf(id);}
+  view='question';
+  explOpen=false;
+  pendingMulti=[];
+  render();
+}
+
+function answerQ(id,selected){
+  if(S.answers.hasOwnProperty(id)) return;
+  const q=getQ(id);
+  const sel=Array.isArray(selected)?selected:[selected];
+  const correct=[...q.ans].sort().join(',');
+  const given=[...sel].map(Number).sort().join(',');
+  S.answers[id]=sel;
+  S.history.push({id,answer:sel,correct:correct===given,ts:Date.now()});
+  save();
+  pendingMulti=[];
+  render();
+}
+
+function toggleBkm(id){
+  const i=S.bookmarks.indexOf(id);
+  if(i===-1) S.bookmarks.push(id);
+  else S.bookmarks.splice(i,1);
+  save();
+  render();
+}
+
+function resetProgress(){
+  if(!confirm('Reset all progress? This cannot be undone.')) return;
+  S={answers:{},bookmarks:[],history:[]};
+  save();
+  view='list';filter='all';tab='practice';explOpen=false;
+  render();
+}
+
+/* ════════════════════════════════════════════
+   UTILS
+════════════════════════════════════════════ */
+function el(tag,cls){
+  const e=document.createElement(tag||'div');
+  if(cls) e.className=cls;
+  return e;
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ════════════════════════════════════════════
+   CSV PARSER
+════════════════════════════════════════════ */
+function parseCSV(text){
+  /* RFC-4180 compliant parser — handles quoted fields with embedded commas
+     and newlines, which are common in the explanation column. */
+  const rows=[];
+  let i=0,len=text.length;
+  while(i<len){
+    const row=[];
+    while(i<len){
+      let field='';
+      if(text[i]==='"'){
+        i++;
+        while(i<len){
+          if(text[i]==='"'){
+            if(i+1<len&&text[i+1]==='"'){field+='"';i+=2;}
+            else{i++;break;}
+          }else{field+=text[i++];}
+        }
+      }else{
+        while(i<len&&text[i]!==','&&text[i]!=='\n'&&text[i]!=='\r')field+=text[i++];
+      }
+      row.push(field);
+      if(i<len&&text[i]===','){i++;continue;}
+      break;
+    }
+    if(i<len&&text[i]==='\r')i++;
+    if(i<len&&text[i]==='\n')i++;
+    if(row.length>1||(row.length===1&&row[0].trim()))rows.push(row);
+  }
+  return rows.slice(1).map(r=>({
+    id:parseInt(r[0],10)||0,
+    q:(r[1]||'').trim(),
+    opts:[(r[2]||''),(r[3]||''),(r[4]||''),(r[5]||'')],
+    ans:(r[6]||'0').split(',').map(Number),
+    expl:(r[7]||'').trim()
+  })).filter(q=>q.id>0&&q.q);
+}
+
+/* ════════════════════════════════════════════
+   BOOT
+════════════════════════════════════════════ */
+function showLoader(){
+  const app=document.getElementById('app');
+  app.innerHTML=`
+  <div class="splash">
+    <div class="splash-card">
+      <div class="splash-icon">⚡</div>
+      <h1 class="splash-title">AIF-C01</h1>
+      <p class="splash-sub">AWS Certified AI Practitioner Practice</p>
+      <div class="splash-div"></div>
+      <p class="splash-hint">Select your <strong>questions.csv</strong> to load all 422 questions</p>
+      <label class="csv-label">
+        📂  Choose questions.csv
+        <input type="file" accept=".csv" id="splashCsvInput">
+      </label>
+      <p class="splash-cmd">
+        Generate the CSV from your PDF:<br>
+        <code>python3 extract_questions.py your-exam.pdf</code>
+      </p>
+      <p class="splash-skip">or <a id="skipToDemo">continue with the 26 built-in demo questions ›</a></p>
+    </div>
+  </div>`;
+  document.getElementById('splashCsvInput').addEventListener('change',function(e){
+    const file=e.target.files[0];if(!file)return;
+    const fr=new FileReader();
+    fr.onload=function(ev){
+      const parsed=parseCSV(ev.target.result);
+      if(!parsed.length){alert('No questions found. Make sure the file was generated by extract_questions.py.');return;}
+      Q=parsed;render();
+    };
+    fr.readAsText(file);
+  });
+  document.getElementById('skipToDemo').addEventListener('click',function(){
+    // Q already has the 26 hardcoded fallback questions from the let Q=[...] declaration
+    render();
+  });
+}
+
+function boot(){
+  // Try to auto-fetch questions.csv from the same directory (works via HTTP server).
+  // Falls back to the splash loader (file:// or CSV not present).
+  fetch('questions.csv')
+    .then(function(r){if(!r.ok)throw 0;return r.text();})
+    .then(function(csv){
+      const parsed=parseCSV(csv);
+      if(parsed.length){Q=parsed;}  // overwrite the hardcoded demo questions
+      render();
+    })
+    .catch(function(){
+      // On file:// or missing CSV: show the splash loader
+      showLoader();
+    });
+}
+
+boot();
+</script>
+</body>
+</html>
