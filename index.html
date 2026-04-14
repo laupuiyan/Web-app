@@ -513,10 +513,13 @@ function save(){
 let tab='practice';      // 'practice'|'bookmarks'|'dashboard'
 let view='list';         // 'list'|'question'
 let filter='all';        // 'all'|'unanswered'|'correct'|'wrong'
+let bkmFilter='all';     // bookmark tab sub-filter: 'all'|'correct'|'wrong'
 let qList=[];            // IDs in current quiz context
 let qIdx=0;              // index in qList
 let explOpen=false;
 let pendingMulti=[];     // selected option indices for multi-answer (pre-submit)
+let justAnswered=false;  // true for exactly one render after answerQ fires
+let viewSource='practice'; // 'practice'|'bookmarks' — which tab opened the question
 
 /* ════════════════════════════════════════════
    HELPERS
@@ -549,6 +552,18 @@ function filtered(f){
     case 'bookmarked': return Q.filter(q=>isBkm(q.id)).map(q=>q.id);
     default:           return Q.map(q=>q.id);
   }
+}
+function filteredBookmarks(f){
+  const bkm=Q.filter(q=>isBkm(q.id));
+  switch(f){
+    case 'correct': return bkm.filter(q=>status(q.id)==='c').map(q=>q.id);
+    case 'wrong':   return bkm.filter(q=>{const s=status(q.id);return s==='w'||s==='r';}).map(q=>q.id);
+    default:        return bkm.map(q=>q.id);
+  }
+}
+function countBkmLabel(f){
+  const n=filteredBookmarks(f).length;
+  return n>0?`<span class="pill-count">${n}</span>`:'';
 }
 
 function countLabel(f){
@@ -593,6 +608,7 @@ function renderNav(app){
       tab=t.id;
       view='list';
       filter=t.id==='bookmarks'?'bookmarked':'all';
+      if(t.id==='bookmarks') bkmFilter='all';
       explOpen=false;
       render();
     });
@@ -604,17 +620,17 @@ function renderNav(app){
 /* ── LIST VIEW ── */
 function renderListView(app){
   const isBookTab=tab==='bookmarks';
-  const activeFilter=isBookTab?'bookmarked':filter;
-  const ids=filtered(activeFilter);
+  const ids=isBookTab?filteredBookmarks(bkmFilter):filtered(filter);
 
   // Header
   const hdr=el('div','hdr');
+  const totalBkm=Q.filter(q=>isBkm(q.id)).length;
   hdr.innerHTML=isBookTab
-    ?`<h1>★ Bookmarks</h1><div class="sub">${ids.length} question${ids.length!==1?'s':''} bookmarked</div>`
+    ?`<h1>★ Bookmarks</h1><div class="sub">${totalBkm} question${totalBkm!==1?'s':''} bookmarked</div>`
     :`<h1>AIF-C01 Practice</h1><div class="sub">AWS Certified AI Practitioner · ${Q.length} Questions</div>`;
   app.appendChild(hdr);
 
-  // Filter pills (only on practice tab)
+  // Filter pills
   if(!isBookTab){
     const pills=el('div','pills');
     [
@@ -629,13 +645,26 @@ function renderListView(app){
       pills.appendChild(btn);
     });
     app.appendChild(pills);
+  } else {
+    const pills=el('div','pills');
+    [
+      {id:'all',   label:'All'},
+      {id:'correct',label:'Correct'},
+      {id:'wrong',  label:'Wrong'},
+    ].forEach(p=>{
+      const btn=el('button',`pill${bkmFilter===p.id?' on':''}`);
+      btn.innerHTML=p.label+countBkmLabel(p.id);
+      btn.addEventListener('click',()=>{bkmFilter=p.id;render();});
+      pills.appendChild(btn);
+    });
+    app.appendChild(pills);
   }
 
   // Start quiz button
   if(ids.length>0){
     const startBtn=el('button','start-btn');
     startBtn.textContent=`▶  Start Quiz (${ids.length})`;
-    startBtn.addEventListener('click',()=>goToQuestion(ids[0],ids));
+    startBtn.addEventListener('click',()=>goToQuestion(ids[0],ids,tab==='bookmarks'));
     app.appendChild(startBtn);
   }
 
@@ -645,7 +674,7 @@ function renderListView(app){
   if(ids.length===0){
     const empty=el('div','empty');
     empty.innerHTML=isBookTab
-      ?`<div class="empty-icon">🔖</div><h3>No bookmarks yet</h3><p>Tap the ☆ icon on any question to bookmark it for later review.</p>`
+      ?`<div class="empty-icon">🔖</div><h3>No questions here</h3><p>${totalBkm===0?'Tap the ☆ icon on any question to bookmark it for later review.':'Change the filter above to see more bookmarked questions.'}</p>`
       :`<div class="empty-icon">🎉</div><h3>No questions here</h3><p>Change the filter above to see more questions.</p>`;
     list.appendChild(empty);
   } else {
@@ -677,7 +706,7 @@ function renderListView(app){
       item.appendChild(statusIcon);
       item.appendChild(body);
       item.appendChild(right);
-      item.addEventListener('click',()=>goToQuestion(id,ids));
+      item.addEventListener('click',()=>goToQuestion(id,ids,tab==='bookmarks'));
       list.appendChild(item);
     });
   }
@@ -689,14 +718,17 @@ function renderQuestionView(app){
   const id=qList[qIdx];
   const q=getQ(id);
   const st=status(id);
-  // Auto-retry: if the user previously got this wrong, silently reset it so
-  // the question opens fresh (no answer revealed). The list still shows it
-  // as wrong via S.retrying, and the header shows the ↺ Retry badge.
-  // Only trigger when not already in retry mode (i.e. not in S.retrying),
-  // so a wrong re-answer during retry is shown rather than immediately reset.
-  if(st==='w' && !S.retrying.includes(id)){ retryQ(id); return; }
+
+  // Consume justAnswered for this render cycle.
+  const freshlyAnswered=justAnswered;
+  justAnswered=false;
+
+  // In bookmark mode: treat every question as unanswered on entry so the
+  // user can redo it. After they answer (freshlyAnswered), show the result.
   const bkm=isBkm(id);
-  const answered=S.answers.hasOwnProperty(id);
+  const answered=(viewSource==='bookmarks' && !freshlyAnswered)
+    ? false
+    : S.answers.hasOwnProperty(id);
   const userAns=S.answers[id];
 
   // Header
@@ -1046,31 +1078,39 @@ function renderDashboard(app){
 /* ════════════════════════════════════════════
    ACTIONS
 ════════════════════════════════════════════ */
-function goToQuestion(id,list){
+function goToQuestion(id,list,fromBookmarks=false){
   qList=list||Q.map(q=>q.id);
   qIdx=qList.indexOf(id);
   if(qIdx<0){qList=Q.map(q=>q.id);qIdx=qList.indexOf(id);}
   view='question';
+  viewSource=fromBookmarks?'bookmarks':'practice';
   explOpen=false;
   pendingMulti=[];
+  justAnswered=false;
   render();
 }
 
 function answerQ(id,selected){
-  if(S.answers.hasOwnProperty(id)) return;
+  if(S.answers.hasOwnProperty(id)){
+    // In bookmark mode the question is shown fresh regardless of stored state,
+    // so allow re-answering by clearing the old answer first.
+    if(viewSource!=='bookmarks') return;
+    delete S.answers[id];
+  }
   const q=getQ(id);
   const sel=Array.isArray(selected)?selected:[selected];
   const correct=[...q.ans].sort().join(',');
   const given=[...sel].map(Number).sort().join(',');
+  const isCorrect=correct===given;
   S.answers[id]=sel;
-  S.history.push({id,answer:sel,correct:correct===given,ts:Date.now()});
-  // Clear retry flag only on a correct re-answer; keep it on wrong so the
-  // auto-retry trigger (st==='w' && not retrying) doesn't immediately reset
-  // the question before the user can see their result.
+  S.history.push({id,answer:sel,correct:isCorrect,ts:Date.now()});
+  // Track retrying for badge display. Wrong → add to retrying; correct → remove.
   const ri=S.retrying.indexOf(id);
-  if(ri!==-1 && correct===given) S.retrying.splice(ri,1);
+  if(isCorrect){ if(ri!==-1) S.retrying.splice(ri,1); }
+  else         { if(ri===-1) S.retrying.push(id); }
   save();
   pendingMulti=[];
+  justAnswered=true;  // tell renderQuestionView not to auto-retry this render
   render();
 }
 
@@ -1078,6 +1118,7 @@ function retryQ(id){
   delete S.answers[id];
   if(!S.retrying.includes(id)) S.retrying.push(id);
   pendingMulti=[];
+  justAnswered=false;
   save();
   render();
 }
