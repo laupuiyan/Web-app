@@ -126,6 +126,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Ne
   border-radius:10px;margin-bottom:16px;font-size:14px;font-weight:600}
 .result-banner.c{background:var(--green-l);color:var(--green);border:1.5px solid var(--green-b)}
 .result-banner.w{background:var(--red-l);color:var(--red);border:1.5px solid var(--red-b)}
+.result-banner.r{background:var(--red-l);color:var(--red);border:1.5px solid var(--red-b)}
 .result-banner svg{width:18px;height:18px;flex-shrink:0}
 
 /* ── OPTIONS ── */
@@ -691,7 +692,9 @@ function renderQuestionView(app){
   // Auto-retry: if the user previously got this wrong, silently reset it so
   // the question opens fresh (no answer revealed). The list still shows it
   // as wrong via S.retrying, and the header shows the ↺ Retry badge.
-  if(st==='w'){ retryQ(id); return; }
+  // Only trigger when not already in retry mode (i.e. not in S.retrying),
+  // so a wrong re-answer during retry is shown rather than immediately reset.
+  if(st==='w' && !S.retrying.includes(id)){ retryQ(id); return; }
   const bkm=isBkm(id);
   const answered=S.answers.hasOwnProperty(id);
   const userAns=S.answers[id];
@@ -1061,9 +1064,11 @@ function answerQ(id,selected){
   const given=[...sel].map(Number).sort().join(',');
   S.answers[id]=sel;
   S.history.push({id,answer:sel,correct:correct===given,ts:Date.now()});
-  // Clear retry flag now that the question has been re-answered
+  // Clear retry flag only on a correct re-answer; keep it on wrong so the
+  // auto-retry trigger (st==='w' && not retrying) doesn't immediately reset
+  // the question before the user can see their result.
   const ri=S.retrying.indexOf(id);
-  if(ri!==-1) S.retrying.splice(ri,1);
+  if(ri!==-1 && correct===given) S.retrying.splice(ri,1);
   save();
   pendingMulti=[];
   render();
